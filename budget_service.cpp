@@ -33,22 +33,9 @@ public:
         double oneDayAmount = 0.;
         if (sameYear(start, end)) {
             if (sameMonth(start, end)) {
-                oneDayAmount = getOneDayAmount((std::to_string(start.tm_year) + std::to_string(start.tm_mon)).c_str());
+                oneDayAmount = getOneDayAmount(start);
                 daysDiff = getDaysDiff(start, end);               
             }
-            /*else {
-                for (int month = start.tm_mon; month <= end.tm_mon; ++month) {
-                    if (month == start.tm_mon) {
-
-                    }
-                    else if (month == end.tm_mon) {
-
-                    }
-                    else {
-
-                    }
-                }
-            }*/
         }
 
         ret = oneDayAmount * daysDiff;
@@ -59,34 +46,66 @@ public:
 
 private:
     BudgetRepo repo;
-    double getOneDayAmount(const char* yearMonth)
+    double getOneDayAmount(std::tm date)
     {
+        std::string yearMonth = std::to_string(date.tm_year);
+        yearMonth += date.tm_mon >= 10 ? "" : "0";
+        yearMonth += std::to_string(date.tm_mon);
         std::vector<Budget> budgets = repo.getAll();
         for (auto budget : budgets) {
-            if (strcmp(budget.YearMonth, yearMonth) == 0) {
+            std::string budgetYearMonth = budget.YearMonth;
+            if (budgetYearMonth == yearMonth) {
                 return budget.Amount / 30;
             }
         }
         return 0.;
     }
-
     bool sameYear(std::tm start, std::tm end)
     {
         return start.tm_year == end.tm_year;
     }
-
     bool sameMonth(std::tm start, std::tm end)
     {
         return start.tm_mon == end.tm_mon;
     }
 
+    // 計算兩個日期相差天數
+    // 已知年月，計算出該月天數
+    int getDaysOfMonth(int year, int month)
+    {
+        int days = 0;
+        if (month == 2) {
+            if (year % 4 == 0 && year % 100 != 0 || year % 400 == 0) {
+                days = 29;
+            }
+            else {
+                days = 28;
+            }
+        }
+        else if (month == 4 || month == 6 || month == 9 || month == 11) {
+            days = 30;
+        }
+        else {
+            days = 31;
+        }
+        return days;
+    }
+
+    // 計算兩個日期相差天數
     int getDaysDiff(std::tm start, std::tm end)
     {
-        time_t time1 = std::mktime(&start);
-        time_t time2 = std::mktime(&end);
-        double secondsDiff = difftime(time2, time1);
-        int daysDiff = (static_cast<int>(secondsDiff / (60 * 60 * 24))) + 1;
-        std::cout << "日期相差天数: " << daysDiff << " 天" << std::endl;
+        int daysDiff = 0;
+        if (start.tm_mon == end.tm_mon) {
+            daysDiff = end.tm_mday - start.tm_mday + 1;
+        }
+        else {
+            int daysInStartMonth = getDaysOfMonth(start.tm_year, start.tm_mon);
+            daysDiff = daysInStartMonth - start.tm_mday + 1;
+            for (int month = start.tm_mon + 1; month < end.tm_mon; ++month) {
+                daysDiff += getDaysOfMonth(start.tm_year, month);
+            }
+            daysDiff += end.tm_mday;
+        }
         return daysDiff;
     }
 };
@@ -95,18 +114,16 @@ private:
 tm createTM(int year, int month, int day)
 {
     tm ret;
-    ret.tm_year = year - 1900;
+    ret.tm_year = year;
     ret.tm_mon = month;
     ret.tm_mday = day;
     return ret;
 }
 TEST(First, Oneday)
 {   
-    
-    tm start = createTM(2023, 4, 1);
-
-    tm end = createTM(2023, 4, 1);
-    BudgetRepo repo;
+    tm start = createTM(2023, 11, 1);
+    tm end = createTM(2023, 11, 1);
+    BudgetRepo repo({ {"202311", 3000} });
     BudgetService serviece(repo);
     ASSERT_EQ(serviece.query(start, end), 100.);
 }
