@@ -62,6 +62,32 @@ public:
                 }
             }
         }
+        else {
+            for (int year = start.tm_year; year <= end.tm_year; ++year) {
+                if (year == start.tm_year) {
+                    tm endOfStartYear = start;
+                    endOfStartYear.tm_mon = 12;
+                    endOfStartYear.tm_mday = 31;
+                    ret += query(start, endOfStartYear);
+                }
+                else if (year == end.tm_year) {
+                    tm startOfEndYear = end;
+                    startOfEndYear.tm_mon = 1;
+                    startOfEndYear.tm_mday = 1;
+                    ret += query(startOfEndYear, end);
+                }
+                else {
+                    tm yearStart, yearEnd;
+                    yearStart.tm_year = year;
+                    yearStart.tm_mon = 1;
+                    yearStart.tm_mday = 1;
+                    yearEnd.tm_year = year;
+                    yearEnd.tm_mon = 12;
+                    yearEnd.tm_mday = 31;
+                    ret += query(yearStart, yearEnd);
+                }
+            }
+        }
 
         ret += oneDayAmount * daysDiff;
         std::cout << ret << std::endl;
@@ -218,7 +244,7 @@ TEST(BudgetService, AccrossYears)
 {
     tm start = createTM(2023, 12, 1);
     tm end = createTM(2024, 1, 30);
-    BudgetRepo repo({ {"202312", 3000}, {"202401", 3100} });
+    BudgetRepo repo({ {"202312", 3100}, {"202401", 3100} });
     BudgetService serviece(repo);
-    ASSERT_EQ(serviece.query(start, end), 6000.);
+    ASSERT_EQ(serviece.query(start, end), 6100.);
 }
