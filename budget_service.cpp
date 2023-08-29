@@ -36,9 +36,26 @@ public:
                 oneDayAmount = getOneDayAmount(start);
                 daysDiff = getDaysDiff(start, end);               
             }
+            else {
+                for (int month = start.tm_mon; month <= end.tm_mon; ++month) {
+                    if (month == start.tm_mon) {
+                        tm endOfStartMonth = start;
+                        endOfStartMonth.tm_mday = getDaysOfMonth(start.tm_year, start.tm_mon);
+                        ret += query(start, endOfStartMonth);
+                    }
+                    else if (month == end.tm_mon) {
+                        tm startOfEndMonth = end;
+                        startOfEndMonth.tm_mday = 1;
+                        ret += query(startOfEndMonth, end);
+                    }
+                    else {
+
+                    }
+                }
+            }
         }
 
-        ret = oneDayAmount * daysDiff;
+        ret += oneDayAmount * daysDiff;
         std::cout << ret << std::endl;
         
         return ret;
@@ -55,7 +72,7 @@ private:
         for (auto budget : budgets) {
             std::string budgetYearMonth = budget.YearMonth;
             if (budgetYearMonth == yearMonth) {
-                return budget.Amount / 30;
+                return budget.Amount / getDaysOfMonth(date.tm_year, date.tm_mon);
             }
         }
         return 0.;
@@ -108,6 +125,21 @@ private:
         }
         return daysDiff;
     }
+
+    //int getDaysDiff(std::tm start, std::tm end)
+    //{
+    //    time_t time1 = std::mktime(&start);
+    //    time_t time2 = std::mktime(&end);
+
+    //    // 计算秒数差    
+    //    double secondsDiff = difftime(time2, time1);
+
+    //    // 转换秒数差为天数差    
+    //    int daysDiff = (static_cast<int>(secondsDiff / (60 * 60 * 24))) + 1;
+
+    //    std::cout << "日期相差天数: " << daysDiff << " 天" << std::endl;
+    //    return daysDiff;
+    //}
 };
 
 
@@ -119,7 +151,7 @@ tm createTM(int year, int month, int day)
     ret.tm_mday = day;
     return ret;
 }
-TEST(First, Oneday)
+TEST(BudgetService, Oneday)
 {   
     tm start = createTM(2023, 11, 1);
     tm end = createTM(2023, 11, 1);
@@ -129,11 +161,38 @@ TEST(First, Oneday)
 }
 
 
-TEST(First, Twodays)
+TEST(BudgetService, Twodays)
 {
     tm start = createTM(2023, 4, 1);
     tm end = createTM(2023, 4, 2);
     BudgetRepo repo({ {"202304", 3000}, {"202305", 3100}});
     BudgetService serviece(repo);
     ASSERT_EQ(serviece.query(start, end), 200.);
+}
+
+TEST(BudgetService, OneMonth)
+{
+    tm start = createTM(2023, 4, 1);
+    tm end = createTM(2023, 4, 30);
+    BudgetRepo repo({ {"202304", 3000}, {"202305", 3100} });
+    BudgetService serviece(repo);
+    ASSERT_EQ(serviece.query(start, end), 3000.);
+}
+
+TEST(BudgetService, NullBudget)
+{
+    tm start = createTM(2023, 4, 1);
+    tm end = createTM(2023, 4, 30);
+    BudgetRepo repo({ {"202305", 3100} });
+    BudgetService serviece(repo);
+    ASSERT_EQ(serviece.query(start, end), 0.);
+}
+
+TEST(BudgetService, AccrossMonths)
+{
+    tm start = createTM(2023, 4, 1);
+    tm end = createTM(2023, 5, 30);
+    BudgetRepo repo({ {"202304", 3000}, {"202305", 3100} });
+    BudgetService serviece(repo);
+    ASSERT_EQ(serviece.query(start, end), 6000.);
 }
