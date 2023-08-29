@@ -49,6 +49,14 @@ public:
                         ret += query(startOfEndMonth, end);
                     }
                     else {
+                        tm monthStart, monthEnd;
+                        monthStart.tm_year = start.tm_year;
+                        monthStart.tm_mon = month;
+                        monthStart.tm_mday = 1;
+                        monthEnd.tm_year = start.tm_year;
+                        monthEnd.tm_mon = month;
+                        monthEnd.tm_mday = getDaysOfMonth(start.tm_year, month);;
+                        ret += query(monthStart, monthEnd);
 
                     }
                 }
@@ -188,11 +196,29 @@ TEST(BudgetService, NullBudget)
     ASSERT_EQ(serviece.query(start, end), 0.);
 }
 
-TEST(BudgetService, AccrossMonths)
+TEST(BudgetService, Accross2Months)
 {
     tm start = createTM(2023, 4, 1);
     tm end = createTM(2023, 5, 30);
     BudgetRepo repo({ {"202304", 3000}, {"202305", 3100} });
+    BudgetService serviece(repo);
+    ASSERT_EQ(serviece.query(start, end), 6000.);
+}
+
+TEST(BudgetService, Accross3Months)
+{
+    tm start = createTM(2023, 4, 1);
+    tm end = createTM(2023, 6, 30);
+    BudgetRepo repo({ {"202304", 3000}, {"202305", 3100}, {"202306", 3000} });
+    BudgetService serviece(repo);
+    ASSERT_EQ(serviece.query(start, end), 9100.);
+}
+
+TEST(BudgetService, AccrossYears)
+{
+    tm start = createTM(2023, 12, 1);
+    tm end = createTM(2024, 1, 30);
+    BudgetRepo repo({ {"202312", 3000}, {"202401", 3100} });
     BudgetService serviece(repo);
     ASSERT_EQ(serviece.query(start, end), 6000.);
 }
